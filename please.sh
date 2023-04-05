@@ -7,6 +7,8 @@ optionExecute="Execute"
 optionCopy="Copy to clipboard"
 optionCancel="Cancel"
 
+current_shell="$(basename ${SHELL})"
+
 explain=0
 
 initialized=0
@@ -19,12 +21,20 @@ black='\e[0m'
 lightbulb="\xF0\x9F\x94\xA1"
 exclamation="\xE2\x9D\x97"
 
+get_current_shell() {
+  local ppid="$(ps -p "$$" -o ppid=)"
+  local shell_path="$(lsof -nP -p "$ppid" | awk 'NR==3 {print $NF; exit}')"
+  local shell_name="$(basename $shell_path)"
+  if [ ! -z "${shell_name}" ]; then
+      current_shell="${shell_name}"
+  fi
+}
+
 check_key() {
   if [ -z "${OPENAI_API_KEY+x}" ]; then
     get_key_from_keychain
   fi
 }
-
 
 get_key_from_keychain() {
   local keyName="OPENAI_API_KEY"
@@ -95,7 +105,8 @@ display_help() {
 }
 
 get_command() {
-  role="You translate the input given into Linux command. You may not use natural language, but only a Linux commands as answer."
+  get_current_shell
+  role="You translate the input given into Linux command. You may not use natural language, but only a Linux commands as answer. The answer must be compatible with the ${current_shell} shell."
   prompt="${commandDescription}"
 
   payload="{
